@@ -3,6 +3,7 @@
 import os
 import time
 import json
+import sys
 import requests
 from datetime import datetime
 
@@ -19,10 +20,15 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
 
+# ================== FORCE UTF-8 (STREAMLIT CLOUD SAFE) ==================
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
+
 # ================== STREAMLIT CONFIG ==================
 st.set_page_config(
     page_title="Climate Sensitive Disease Forecasting",
-    page_icon="??",
+    page_icon="üåç",
     layout="wide"
 )
 
@@ -65,7 +71,7 @@ GEOCODE_CACHE_FILE = os.path.join(DATA_DIR, "geocode_cache.json")
 
 def save_offline_cache(data):
     with open(OFFLINE_CACHE_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f)
+        json.dump(data, f, ensure_ascii=False)
 
 
 def load_offline_cache():
@@ -85,7 +91,7 @@ except:
 
 def save_geocode_cache():
     with open(GEOCODE_CACHE_FILE, "w", encoding="utf-8") as f:
-        json.dump(geocode_cache, f)
+        json.dump(geocode_cache, f, ensure_ascii=False)
 
 
 geolocator = Nominatim(user_agent="epics_app")
@@ -182,9 +188,15 @@ def export_alerts_pdf(alerts):
     y -= 30
 
     for a in alerts:
-        text = f"{a.get('timestamp','')} | {a.get('location','')} | {a.get('message','')}"
+        text = (
+            f"{str(a.get('timestamp',''))} | "
+            f"{str(a.get('location',''))} | "
+            f"{str(a.get('message',''))}"
+        ).encode("utf-8", "ignore").decode("utf-8")
+
         c.drawString(40, y, text[:100])
         y -= 15
+
         if y < 50:
             c.showPage()
             y = height - 40
@@ -208,7 +220,7 @@ if menu == "Home":
     alerts, _ = load_alerts_safe()
 
     if offline:
-        st.warning("Offline mode ñ showing cached data")
+        st.warning("Offline mode - showing cached data")
 
     st.metric("Total Reports", len(reports))
     st.metric("Total Alerts", len(alerts))
@@ -268,7 +280,7 @@ elif menu == "Geo-Heatmaps":
     reports, offline = load_symptom_reports_safe()
 
     if offline:
-        st.warning("Offline mode ñ cached map")
+        st.warning("Offline mode - cached map")
 
     if reports:
         df = pd.DataFrame(reports)
@@ -298,10 +310,11 @@ elif menu == "Alerts":
     alerts, offline = load_alerts_safe()
 
     if offline:
-        st.warning("Offline mode ñ cached alerts")
+        st.warning("Offline mode - cached alerts")
 
     if alerts:
         st.dataframe(pd.DataFrame(alerts))
+
         if st.button("Export alerts as PDF"):
             pdf = export_alerts_pdf(alerts)
             with open(pdf, "rb") as f:
