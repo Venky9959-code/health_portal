@@ -2,7 +2,6 @@
 
 import os
 import time
-import json
 import sys
 import requests
 from datetime import datetime
@@ -20,7 +19,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
 
-# ================== FORCE UTF-8 (STREAMLIT CLOUD SAFE) ==================
+# ================== FORCE UTF-8 ==================
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
@@ -33,17 +32,16 @@ st.set_page_config(
 )
 
 
-# ================== LOAD SECRETS ==================
+# ================== SECRETS ==================
 FAST2SMS_API_KEY = st.secrets.get("FAST2SMS_API_KEY")
 
 SMS_ALERT_THRESHOLD = 3
 SMS_RECEIVERS = ["919959826841"]
 
 
-# ================== FIREBASE INIT (STREAMLIT CLOUD SAFE) ==================
+# ================== FIREBASE INIT (FINAL FIX) ==================
 if not firebase_admin._apps:
-    firebase_key = json.loads(st.secrets["FIREBASE_KEY"])
-    cred = credentials.Certificate(firebase_key)
+    cred = credentials.Certificate(dict(st.secrets["FIREBASE_KEY"]))
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
@@ -178,9 +176,8 @@ def load_alerts_safe():
 def export_alerts_pdf(alerts):
     file_path = "alerts_report.pdf"
     c = canvas.Canvas(file_path, pagesize=A4)
-    width, height = A4
 
-    y = height - 40
+    y = A4[1] - 40
     c.setFont("Helvetica-Bold", 14)
     c.drawString(40, y, "Health Alerts Report")
 
@@ -188,18 +185,12 @@ def export_alerts_pdf(alerts):
     y -= 30
 
     for a in alerts:
-        text = (
-            f"{str(a.get('timestamp',''))} | "
-            f"{str(a.get('location',''))} | "
-            f"{str(a.get('message',''))}"
-        ).encode("utf-8", "ignore").decode("utf-8")
-
+        text = f"{a.get('timestamp','')} | {a.get('location','')} | {a.get('message','')}"
         c.drawString(40, y, text[:100])
         y -= 15
-
         if y < 50:
             c.showPage()
-            y = height - 40
+            y = A4[1] - 40
 
     c.save()
     return file_path
@@ -212,7 +203,6 @@ menu = st.sidebar.radio(
 )
 
 
-# ================== HOME ==================
 if menu == "Home":
     st.header("Dashboard Overview")
 
@@ -220,7 +210,7 @@ if menu == "Home":
     alerts, _ = load_alerts_safe()
 
     if offline:
-        st.warning("Offline mode - showing cached data")
+        st.warning("Offline mode – showing cached data")
 
     st.metric("Total Reports", len(reports))
     st.metric("Total Alerts", len(alerts))
@@ -228,7 +218,6 @@ if menu == "Home":
     st.success("PWA enabled | Offline cache active | SMS alerts enabled")
 
 
-# ================== ASHA ==================
 elif menu == "Symptom Report (ASHA)":
     with st.form("asha_form"):
         location = st.text_input("Location")
@@ -275,12 +264,11 @@ elif menu == "Symptom Report (ASHA)":
             st.success("Report saved successfully")
 
 
-# ================== GEO MAP ==================
 elif menu == "Geo-Heatmaps":
     reports, offline = load_symptom_reports_safe()
 
     if offline:
-        st.warning("Offline mode - cached map")
+        st.warning("Offline mode – cached map")
 
     if reports:
         df = pd.DataFrame(reports)
@@ -305,16 +293,14 @@ elif menu == "Geo-Heatmaps":
             st.info("No valid geographic data available")
 
 
-# ================== ALERTS ==================
 elif menu == "Alerts":
     alerts, offline = load_alerts_safe()
 
     if offline:
-        st.warning("Offline mode - cached alerts")
+        st.warning("Offline mode – cached alerts")
 
     if alerts:
         st.dataframe(pd.DataFrame(alerts))
-
         if st.button("Export alerts as PDF"):
             pdf = export_alerts_pdf(alerts)
             with open(pdf, "rb") as f:
