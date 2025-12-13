@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from dotenv import load_dotenv
-load_dotenv()
-
 import os
 import time
 import json
@@ -22,38 +19,31 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
 
-# ---------------- CONFIG ----------------
-FAST2SMS_API_KEY = os.getenv("FAST2SMS_API_KEY")
+# ================== STREAMLIT CONFIG ==================
+st.set_page_config(
+    page_title="Climate Sensitive Disease Forecasting",
+    page_icon="??",
+    layout="wide"
+)
+
+
+# ================== LOAD SECRETS ==================
+FAST2SMS_API_KEY = st.secrets.get("FAST2SMS_API_KEY")
 
 SMS_ALERT_THRESHOLD = 3
 SMS_RECEIVERS = ["919959826841"]
 
-DATA_DIR = "data"
-os.makedirs(DATA_DIR, exist_ok=True)
 
-OFFLINE_CACHE_FILE = os.path.join(DATA_DIR, "offline_cache.json")
-GEOCODE_CACHE_FILE = os.path.join(DATA_DIR, "geocode_cache.json")
-
-
-# ---------------- FIREBASE INIT (SAFE) ----------------
-try:
-    firebase_admin.get_app()
-except ValueError:
-    cred = credentials.Certificate("firebase_key.json")
+# ================== FIREBASE INIT (STREAMLIT CLOUD SAFE) ==================
+if not firebase_admin._apps:
+    firebase_key = json.loads(st.secrets["FIREBASE_KEY"])
+    cred = credentials.Certificate(firebase_key)
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
 
-# ---------------- STREAMLIT CONFIG ----------------
-st.set_page_config(
-    page_title="Climate Sensitive Disease Forecasting",
-    page_icon="Health",
-    layout="wide"
-)
-
-
-# ---------------- PWA SUPPORT ----------------
+# ================== PWA SUPPORT ==================
 st.markdown("""
 <link rel="manifest" href="/static/manifest.json">
 <meta name="theme-color" content="#0E1117">
@@ -65,7 +55,14 @@ if ('serviceWorker' in navigator) {
 """, unsafe_allow_html=True)
 
 
-# ---------------- OFFLINE CACHE ----------------
+# ================== LOCAL STORAGE ==================
+DATA_DIR = "data"
+os.makedirs(DATA_DIR, exist_ok=True)
+
+OFFLINE_CACHE_FILE = os.path.join(DATA_DIR, "offline_cache.json")
+GEOCODE_CACHE_FILE = os.path.join(DATA_DIR, "geocode_cache.json")
+
+
 def save_offline_cache(data):
     with open(OFFLINE_CACHE_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f)
@@ -78,7 +75,7 @@ def load_offline_cache():
     return []
 
 
-# ---------------- GEOCODING ----------------
+# ================== GEOCODING ==================
 try:
     with open(GEOCODE_CACHE_FILE, "r", encoding="utf-8") as f:
         geocode_cache = json.load(f)
@@ -114,7 +111,7 @@ def geocode_location(place):
     return None, None
 
 
-# ---------------- SMS ALERT ----------------
+# ================== SMS ALERT ==================
 def send_sms_alert(phone_numbers, message):
     if not FAST2SMS_API_KEY or not phone_numbers:
         return {"error": "SMS configuration missing"}
@@ -142,7 +139,7 @@ def send_sms_alert(phone_numbers, message):
         return {"error": str(e)}
 
 
-# ---------------- FIRESTORE HELPERS ----------------
+# ================== FIRESTORE HELPERS ==================
 def save_symptom_report(data):
     lat, lon = geocode_location(data["location"])
     data["lat"] = lat
@@ -171,7 +168,7 @@ def load_alerts_safe():
         return [], True
 
 
-# ---------------- PDF EXPORT ----------------
+# ================== PDF EXPORT ==================
 def export_alerts_pdf(alerts):
     file_path = "alerts_report.pdf"
     c = canvas.Canvas(file_path, pagesize=A4)
@@ -196,14 +193,14 @@ def export_alerts_pdf(alerts):
     return file_path
 
 
-# ---------------- UI ----------------
+# ================== UI ==================
 menu = st.sidebar.radio(
     "Navigation",
     ["Home", "Symptom Report (ASHA)", "Geo-Heatmaps", "Alerts"]
 )
 
 
-# ---------------- HOME ----------------
+# ================== HOME ==================
 if menu == "Home":
     st.header("Dashboard Overview")
 
@@ -211,7 +208,7 @@ if menu == "Home":
     alerts, _ = load_alerts_safe()
 
     if offline:
-        st.warning("Offline mode - showing last cached data")
+        st.warning("Offline mode – showing cached data")
 
     st.metric("Total Reports", len(reports))
     st.metric("Total Alerts", len(alerts))
@@ -219,7 +216,7 @@ if menu == "Home":
     st.success("PWA enabled | Offline cache active | SMS alerts enabled")
 
 
-# ---------------- ASHA ----------------
+# ================== ASHA ==================
 elif menu == "Symptom Report (ASHA)":
     with st.form("asha_form"):
         location = st.text_input("Location")
@@ -266,12 +263,12 @@ elif menu == "Symptom Report (ASHA)":
             st.success("Report saved successfully")
 
 
-# ---------------- GEO MAP ----------------
+# ================== GEO MAP ==================
 elif menu == "Geo-Heatmaps":
     reports, offline = load_symptom_reports_safe()
 
     if offline:
-        st.warning("Offline mode - cached map")
+        st.warning("Offline mode – cached map")
 
     if reports:
         df = pd.DataFrame(reports)
@@ -296,12 +293,12 @@ elif menu == "Geo-Heatmaps":
             st.info("No valid geographic data available")
 
 
-# ---------------- ALERTS ----------------
+# ================== ALERTS ==================
 elif menu == "Alerts":
     alerts, offline = load_alerts_safe()
 
     if offline:
-        st.warning("Offline mode - cached alerts")
+        st.warning("Offline mode – cached alerts")
 
     if alerts:
         st.dataframe(pd.DataFrame(alerts))
