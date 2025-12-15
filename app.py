@@ -90,7 +90,7 @@ if st.session_state.get("page") != "dashboard":
 
 # ---------------- SESSION DEFAULTS ----------------
 if "page" not in st.session_state:
-    st.session_state.page = "landing"
+    st.session_state.page = "home"
 
 if "user_role" not in st.session_state:
     st.session_state.user_role = None
@@ -99,7 +99,7 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 # ---------------- ROUTER ----------------
-if st.session_state.page == "landing":
+if st.session_state.page == "home":
     from views.home import show_home
     show_home()
 
@@ -116,5 +116,5 @@ elif st.session_state.page == "dashboard" and st.session_state.logged_in:
     show_dashboard()
 
 else:
-    st.session_state.page = "landing"
+    st.session_state.page = "home"
     st.rerun()

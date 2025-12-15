@@ -86,7 +86,7 @@ def show_login():
             time.sleep(0.4)
 
 
-        st.rerun()
+            st.rerun()
 
         # --------- SWITCH ----------
         if is_login:
