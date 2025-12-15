@@ -93,7 +93,7 @@ def show_dashboard():
         if st.button("🚪 Logout"):
             st.session_state.logged_in = False
             st.session_state.page = "home"
-            st.experimental_rerun()
+            st.rerun()
 
     # ---------------- PAGE CONTENT WRAPPER ----------------
     st.markdown("<div class='page-container'>", unsafe_allow_html=True)

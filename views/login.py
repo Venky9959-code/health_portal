@@ -90,8 +90,9 @@ def show_login():
         if is_login:
             if st.button("Create an account", use_container_width=True):
                 st.session_state.auth_mode = "register"
-                st.experimental_rerun()
+                st.rerun()
         else:
             if st.button("← Back to Login", use_container_width=True):
                 st.session_state.auth_mode = "login"
-                st.experimental_rerun()
+                st.rerun()
+

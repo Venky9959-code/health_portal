@@ -78,8 +78,9 @@ def show_register():
             time.sleep(0.5)
 
             st.session_state.page = "login"
-            st.experimental_rerun()
+            st.rerun()
 
         if st.button("← Back to Login", use_container_width=True):
             st.session_state.page = "login"
-            st.experimental_rerun()
+            st.rerun()
+

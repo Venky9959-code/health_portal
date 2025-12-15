@@ -29,7 +29,7 @@ def show_home():
         if st.button("Continue as Public", use_container_width=True):
             st.session_state.user_role = "public"
             st.session_state.page = "login"
-            st.experimental_rerun()
+            st.rerun()
 
     with col2:
         st.markdown("""
@@ -42,7 +42,7 @@ def show_home():
         if st.button("Continue as ASHA", use_container_width=True):
             st.session_state.user_role = "asha"
             st.session_state.page = "login"
-            st.experimental_rerun()
+            st.rerun()
 
     st.markdown("""
     <style>
