@@ -1,9 +1,9 @@
 streamlit
-firebase-admin
 pandas
-requests
+numpy
 folium
 streamlit-folium
-geopy
-reportlab
-python-dotenv
+firebase-admin
+prophet
+python-dateutil
+requests
