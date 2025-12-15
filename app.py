@@ -117,4 +117,4 @@ elif st.session_state.page == "dashboard" and st.session_state.logged_in:
 
 else:
     st.session_state.page = "landing"
-    st.experimental_rerun()
+    st.rerun()

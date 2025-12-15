@@ -101,7 +101,7 @@ def show_reports():
         if st.button("🗑️ Clear reports older than 30 days"):
             delete_old_reports(30)
             st.success("Old data cleared")
-            st.experimental_rerun()
+            st.rerun()
 
     # ---------- DISTRICT ANALYTICS ----------
     st.subheader("🗺️ District-wise Risk Summary")
