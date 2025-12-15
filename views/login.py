@@ -84,7 +84,9 @@ def show_login():
 
             st.success("Login successful")
             time.sleep(0.4)
-            st.experimental_rerun()
+
+
+        st.rerun()
 
         # --------- SWITCH ----------
         if is_login:
