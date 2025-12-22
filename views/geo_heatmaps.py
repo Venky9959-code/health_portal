@@ -4,6 +4,9 @@ import folium
 from streamlit_folium import st_folium
 from utils.firebase_utils import load_reports
 from utils.page_refresh import page_refresh_button
+from utils.auth_guard import require_login
+
+require_login()
 
 
 # ---------------- AUTO FOCUS LOGIC ----------------
@@ -39,7 +42,6 @@ def risk_radius(risk, population=1):
     elif risk == "medium":
         base = 10
 
-    # population normalization (log safe)
     try:
         population = max(int(population), 1)
         return min(base + (population ** 0.5), 25)
@@ -68,7 +70,6 @@ def show_geo_heatmaps():
     # ---------------- LOAD REPORTS ----------------
     reports = load_reports()
 
-    # include forecasted data if exists
     if "last_forecast" in st.session_state and st.session_state.last_forecast is not None:
         forecast_df = st.session_state.last_forecast.copy()
         forecast_df["Risk"] = "Medium"
@@ -97,6 +98,11 @@ def show_geo_heatmaps():
 
     df = df.dropna(subset=["lat", "lon"])
 
+    # 🔑 CRITICAL FIX (NO FLOW CHANGE)
+    if df.empty:
+        st.warning("No valid latitude/longitude data to display on map.")
+        return
+
     if "risk" in df.columns and "Risk" not in df.columns:
         df.rename(columns={"risk": "Risk"}, inplace=True)
 
@@ -122,10 +128,15 @@ def show_geo_heatmaps():
     # ---------------- AUTO FOCUS ----------------
     focus_lat, focus_lon, zoom = get_focus_location(df)
 
+    # 🔑 EXTRA SAFETY (NO BEHAVIOR CHANGE)
+    if pd.isna(focus_lat) or pd.isna(focus_lon):
+        focus_lat, focus_lon, zoom = 20.5937, 78.9629, 5  # India fallback
+
     m = folium.Map(
         location=[focus_lat, focus_lon],
         zoom_start=zoom,
-        tiles="OpenStreetMap"
+        tiles="OpenStreetMap",
+        control_scale=True
     )
 
     # ---------------- MARKERS ----------------
