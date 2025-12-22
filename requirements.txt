@@ -9,3 +9,11 @@ python-dateutil
 requests
 geopy
 reportlab
+plotly
+geopy
+requests
+twilio
+scikit-learn
+cmdstanpy
+prophet
+
