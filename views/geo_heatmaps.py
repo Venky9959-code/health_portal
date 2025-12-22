@@ -6,9 +6,8 @@ from utils.firebase_utils import load_reports
 from utils.page_refresh import page_refresh_button
 
 
-
+# ---------------- AUTO FOCUS LOGIC ----------------
 def get_focus_location(df):
-    # Priority: High → Medium → All
     high = df[df["Risk"].str.lower() == "high"]
     medium = df[df["Risk"].str.lower() == "medium"]
 
@@ -20,37 +19,39 @@ def get_focus_location(df):
         return df["lat"].mean(), df["lon"].mean(), 7
 
 
-# ---------- RISK → COLOR ----------
+# ---------------- RISK → COLOR ----------------
 def risk_color(risk):
     risk = str(risk).lower()
     if risk == "high":
         return "red"
     elif risk == "medium":
         return "orange"
-    else:
-        return "green"
+    return "green"
 
 
-
-
-
-
-# ---------- RISK → SIZE ----------
-def risk_radius(risk):
+# ---------------- POPULATION NORMALIZED RADIUS ----------------
+def risk_radius(risk, population=1):
     risk = str(risk).lower()
+    base = 7
+
     if risk == "high":
-        return 14
+        base = 14
     elif risk == "medium":
-        return 10
-    else:
-        return 7
+        base = 10
+
+    # population normalization (log safe)
+    try:
+        population = max(int(population), 1)
+        return min(base + (population ** 0.5), 25)
+    except:
+        return base
 
 
 def show_geo_heatmaps():
     st.header("🗺️ Geo Risk Map")
     page_refresh_button("🔄 Refresh Map")
 
-    # ---------- BLINK CSS ----------
+    # ---------------- BLINK CSS ----------------
     st.markdown("""
     <style>
     @keyframes blink {
@@ -64,7 +65,19 @@ def show_geo_heatmaps():
     </style>
     """, unsafe_allow_html=True)
 
+    # ---------------- LOAD REPORTS ----------------
     reports = load_reports()
+
+    # include forecasted data if exists
+    if "last_forecast" in st.session_state and st.session_state.last_forecast is not None:
+        forecast_df = st.session_state.last_forecast.copy()
+        forecast_df["Risk"] = "Medium"
+        forecast_df["location"] = "Forecasted Region"
+        forecast_df["lat"] = None
+        forecast_df["lon"] = None
+        forecast_df["population"] = 1
+        forecast_df["timestamp"] = "Forecast"
+        reports += forecast_df.to_dict("records")
 
     if not reports:
         st.info("No reports available yet.")
@@ -72,10 +85,11 @@ def show_geo_heatmaps():
 
     df = pd.DataFrame(reports)
 
+    # ---------------- SESSION ALERT FLAG ----------------
     if "high_alert_shown" not in st.session_state:
         st.session_state.high_alert_shown = False
 
-    # ---------- SAFETY CHECK ----------
+    # ---------------- SAFETY CHECKS ----------------
     for col in ["lat", "lon"]:
         if col not in df.columns:
             st.warning("Geographic data not available.")
@@ -88,15 +102,24 @@ def show_geo_heatmaps():
 
     if "Risk" not in df.columns:
         df["Risk"] = "Low"
-    # ---------- AUTO HIGH RISK ALERT ----------
+
+    if "population" not in df.columns:
+        df["population"] = 1
+
+    if "date" in df.columns and "timestamp" not in df.columns:
+        df.rename(columns={"date": "timestamp"}, inplace=True)
+
+    if "timestamp" not in df.columns:
+        df["timestamp"] = "-"
+
+    # ---------------- AUTO HIGH RISK ALERT ----------------
     high_count = df[df["Risk"].str.lower() == "high"].shape[0]
 
     if high_count > 0 and not st.session_state.high_alert_shown:
         st.session_state.high_alert_shown = True
         st.error(f"🚨 ALERT: {high_count} HIGH RISK locations detected!")
 
-
-    # ---------- AUTO FOCUS ----------
+    # ---------------- AUTO FOCUS ----------------
     focus_lat, focus_lon, zoom = get_focus_location(df)
 
     m = folium.Map(
@@ -105,22 +128,15 @@ def show_geo_heatmaps():
         tiles="OpenStreetMap"
     )
 
-    # ---------- MARKERS ----------
+    # ---------------- MARKERS ----------------
     for _, row in df.iterrows():
         risk = str(row["Risk"]).lower()
-
-        color = "green"
-        css_class = ""
-
-        if risk == "high":
-            color = "red"
-            css_class = "blink-marker"
-        elif risk == "medium":
-            color = "orange"
+        color = risk_color(risk)
+        css_class = "blink-marker" if risk == "high" else ""
 
         folium.CircleMarker(
             location=[row["lat"], row["lon"]],
-            radius=risk_radius(row["Risk"]),   # ✅ FIXED
+            radius=risk_radius(row["Risk"], row.get("population", 1)),
             color=color,
             fill=True,
             fill_color=color,
@@ -128,15 +144,17 @@ def show_geo_heatmaps():
             popup=(
                 f"<b>Location:</b> {row.get('location','-')}<br>"
                 f"<b>Disease:</b> {row.get('disease','-')}<br>"
-                f"<b>Risk:</b> {row.get('Risk','-')}"
+                f"<b>Risk:</b> {row.get('Risk','-')}<br>"
+                f"<b>Population:</b> {row.get('population','-')}<br>"
+                f"<b>Time:</b> {row.get('timestamp','-')}"
             ),
             class_name=css_class
         ).add_to(m)
 
-    # ---------- RENDER MAP ----------
+    # ---------------- RENDER MAP ----------------
     st_folium(m, width=1200, height=600)
 
-    # ---------- LEGEND ----------
+    # ---------------- LEGEND ----------------
     st.markdown("""
     ### 🗺️ Risk Legend
     - 🟢 **Low Risk**

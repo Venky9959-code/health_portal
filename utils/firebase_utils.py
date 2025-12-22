@@ -3,14 +3,17 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from datetime import datetime, timedelta
 
-if not firebase_admin._apps:
-    cred = credentials.Certificate(dict(st.secrets["FIREBASE_KEY"]))
-    firebase_admin.initialize_app(cred)
+def get_db():
+    if not firebase_admin._apps:
+        cred = credentials.Certificate(dict(st.secrets["FIREBASE_KEY"]))
+        firebase_admin.initialize_app(cred)
 
-db = firestore.client()
+    return firestore.client()
+
+db = get_db()
 
 
-def save_report(date, location, disease, risk, symptoms, lat=None, lon=None):
+def save_report(location, disease, risk, symptoms, lat, lon, population=1, timestamp=None, date=None):
     db.collection("symptom_reports").add({
         "Date": date,
         "Location": location,
@@ -18,7 +21,8 @@ def save_report(date, location, disease, risk, symptoms, lat=None, lon=None):
         "Risk": risk,
         "Symptoms": symptoms,
         "lat": lat,
-        "lon": lon
+        "lon": lon,
+        "population": population
     })
 
 
@@ -26,16 +30,12 @@ def load_reports():
     return [doc.to_dict() for doc in db.collection("symptom_reports").stream()]
 
 
-
 def delete_old_reports(days=30):
     cutoff_date = datetime.now() - timedelta(days=days)
-
     reports_ref = db.collection("reports")
-    docs = reports_ref.stream()
 
     deleted = 0
-
-    for doc in docs:
+    for doc in reports_ref.stream():
         data = doc.to_dict()
         try:
             report_date = datetime.strptime(data.get("date"), "%Y-%m-%d")
@@ -46,4 +46,3 @@ def delete_old_reports(days=30):
             continue
 
     return deleted
-

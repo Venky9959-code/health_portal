@@ -1,23 +1,28 @@
 import streamlit as st
 import time
+from utils.auth_utils import register_user
+
 
 def show_register():
 
-    # --------- SESSION SAFETY ----------
     role = st.session_state.get("user_role") or "User"
 
-    # --------- STYLES ----------
     st.markdown("""
     <style>
     section[data-testid="stSidebar"] {display:none;}
 
+    .stApp {
+        background-color: #f9fafb;
+    }
+
     .register-box {
-        max-width: 420px;
-        margin: 70px auto 20px auto;
+        max-width: 480px;
+        margin: 60px auto 40px auto;
         padding: 40px;
-        border-radius: 18px;
-        background: linear-gradient(145deg,#0f172a,#020617);
-        box-shadow: 0 25px 60px rgba(0,0,0,.5);
+        border-radius: 20px;
+        background: #ffffff;
+        box-shadow: 0 30px 60px rgba(0,0,0,0.08);
+        text-align: center;
         animation: fadeUp .6s ease;
     }
 
@@ -27,43 +32,68 @@ def show_register():
     }
 
     .title {
-        text-align:center;
-        font-size:26px;
-        font-weight:700;
-        margin-bottom:6px;
+        font-size: 26px;
+        font-weight: 700;
+        color: #065f46;
+        margin-bottom: 6px;
     }
 
     .subtitle {
-        text-align:center;
-        opacity:.8;
-        margin-bottom:10px;
+        color: #475569;
+        margin-bottom: 24px;
+        font-size: 15px;
+    }
+
+    /* DARK INPUT FIELDS */
+    input {
+        background: #1f2937 !important;
+        color: #ffffff !important;
+        border-radius: 12px !important;
+        padding: 12px !important;
+        border: none !important;
+    }
+
+    input::placeholder {
+        color: #9ca3af !important;
+    }
+
+    /* HEALTH BUTTONS */
+    button {
+        background: #16a34a !important;
+        color: #ffffff !important;
+        border-radius: 12px !important;
+        font-weight: 600 !important;
+        padding: 12px 0 !important;
+        border: none !important;
+        transition: all 0.3s ease;
+    }
+
+    button:hover {
+        background: #15803d !important;
+        box-shadow: 0 10px 25px rgba(22,163,74,0.4);
+        transform: translateY(-2px);
     }
     </style>
     """, unsafe_allow_html=True)
 
-    # --------- CARD ----------
     st.markdown(f"""
     <div class="register-box">
-        <div class="title">
-            📝 Register ({role.upper()})
-        </div>
-        <div class="subtitle">
-            Create your account to continue
-        </div>
+        <div class="title">📝 Register ({role.upper()})</div>
+        <div class="subtitle">Create your account</div>
     </div>
     """, unsafe_allow_html=True)
 
-    # --------- CENTERED FORM ----------
     _, center, _ = st.columns([1, 2, 1])
 
     with center:
         username = st.text_input("Username")
+        email = st.text_input("Email (for recovery & communication)")
         password = st.text_input("Password", type="password")
         confirm = st.text_input("Confirm Password", type="password")
 
-        if st.button("Create Account", use_container_width=True):
+        if st.button("Register", use_container_width=True):
 
-            if not username or not password or not confirm:
+            if not username or not email or not password or not confirm:
                 st.warning("Please fill all fields")
                 return
 
@@ -72,15 +102,18 @@ def show_register():
                 return
 
             with st.spinner("Creating account..."):
-                time.sleep(1.2)
+                time.sleep(0.8)
+                try:
+                    register_user(username, email, password, role)
+                except Exception as e:
+                    st.error(str(e))
+                    return
 
             st.success("Account created successfully!")
             time.sleep(0.5)
-
             st.session_state.page = "login"
             st.rerun()
 
         if st.button("← Back to Login", use_container_width=True):
             st.session_state.page = "login"
             st.rerun()
-
