@@ -4,16 +4,12 @@ numpy
 folium
 streamlit-folium
 firebase-admin
-prophet
 python-dateutil
 requests
 geopy
 reportlab
 plotly
-geopy
-requests
 twilio
 scikit-learn
 cmdstanpy
 prophet
-
