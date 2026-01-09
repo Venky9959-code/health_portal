@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 from utils.firebase_utils import load_reports
 from utils.page_refresh import page_refresh_button
+from utils.auth_guard import require_login
+require_login()
+
 
 
 def show_alerts():

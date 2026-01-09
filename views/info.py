@@ -1,4 +1,7 @@
 import streamlit as st
+from utils.auth_guard import require_login
+require_login()
+
 
 def show_info():
 

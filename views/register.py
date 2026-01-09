@@ -3,6 +3,7 @@ import time
 from utils.auth_utils import register_user
 
 
+
 def show_register():
 
     role = st.session_state.get("user_role") or "User"
